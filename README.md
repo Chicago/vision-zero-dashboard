@@ -55,3 +55,5 @@ You can learn more about the web development software, and view examples here:
 https://shiny.rstudio.com
 https://shiny.rstudio.com/gallery/
  
+
+<img src="https://design.chicago.gov/assets/img/seals/1990-blue.png" width="400" alt="City Seal of Chicago"/>
