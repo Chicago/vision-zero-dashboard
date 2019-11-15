@@ -167,6 +167,7 @@ datv[[2]][ , .N, list(V29==V30)]
 datv[[1]][ , V29 := NULL]
 datv[[2]][ , V29 := NULL]
 
+sapply(datv, dim)
 
 fv
 datv[[3]][ , .N, keyby = list(V14, V29)]
@@ -189,5 +190,5 @@ for(i in 1:length(datv)) {
 }
 
 datv <- rbindlist(datv)
-fwrite(datv, "data-idot/COMBINED VEHICLE DATA.Rds")
+saveRDS(datv, "data-idot/COMBINED VEHICLE DATA.Rds")
 
