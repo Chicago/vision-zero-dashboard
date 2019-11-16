@@ -84,10 +84,10 @@ load_tract_data <- function(){
 #'
 #' @return data.table?
 #' @export
-#'
+#' @import sp
 load_community_areas_data <- function(){
 
-  a <- file.path(system.file("data-cook-shape",
+  a <- file.path(system.file("data-city-shape",
                              package = "visionZero"),
                  "CommunityAreas.Rds")
   readRDS(a)
@@ -120,5 +120,19 @@ load_acs_population_data <- function(){
                  "acs_population_2016.Rds")
   readRDS(a)
 
+}
+
+
+
+#' gUnaryUnion
+#'
+#' @param x sp input
+#'
+#' @return data.table?
+#' @export
+#' @import rgeos
+g_union <- function(x){
+
+rgeos::gUnaryUnion(methods::as(x, "SpatialPolygons"))
 }
 
