@@ -1,6 +1,6 @@
-#########################
-### Call Dark Sky API ###
-#########################
+###########################
+#### Call Dark Sky API ####
+###########################
 
 # ----
 ## Hypothesis: adverse weather conditions play a significant role in frequency and severity of traffic accidents.
@@ -29,7 +29,8 @@ apiData <- function(call){
 }
 
 # create function: API call writer ----
-apiCallWriter <- function(lat, lon, time, key = "9cbfb8d2e1502c2e06cac69d30b1c984"){
+apiCallWriter <- function(lat, lon, time, key = "1234567890abcdefg" ## change this fake key to your own, given from DarkSky.net
+                          ){
   call = paste0("https://api.darksky.net/forecast/",
                 key, "/",
                 lat, ",",
@@ -40,7 +41,8 @@ apiCallWriter <- function(lat, lon, time, key = "9cbfb8d2e1502c2e06cac69d30b1c98
 }
 
 # create function: unix time ----
-unixTime <- function(date, time, tz = "America/Chicago", format = "%m/%d/%Y %H:%M"){
+unixTime <- function(date, time, tz = "America/Chicago", format = "%m/%d/%Y %H:%M:%S"){
+  time = format(strptime(time, "%I:%M %p"), format="%H:%M:%S") ## convert to 24hr format
   humanReadableTime = paste(date, time) # space in between
   epochTime = as.numeric(as.POSIXct(humanReadableTime, format = format, tz = tz))
   return(epochTime)
@@ -49,37 +51,83 @@ unixTime <- function(date, time, tz = "America/Chicago", format = "%m/%d/%Y %H:%
 # ----
 # crash <- readRDS("data-idot/COMBINED CRASH DATA.Rds") %>%
 #   select(lat, lon, CrashHour, CrashMonth)
-crash2 = crash %>%
-  select(lat, lon, CrashHour, CrashMonth, CrashDate, CrashDay) %>%
-  mutate(CrashYear = str_sub(CrashDate, -4, -1),
-         CrashUnixTime = unixTime(CrashDate, CrashHour))
+darkskyinput = crash %>%
+  select(ICN, CrashID, lat, lon, TimeOfCrash, CrashDate) %>%
+  mutate(CrashUnixTime = unixTime(CrashDate, TimeOfCrash))
 
-masterWeather = setNames(data.table(matrix(nrow = 0, ncol = 21)), c("lat", "lon", "CrashUnixTime",
-                                                                  ## DarkSky hourly columns
-                                                                  "hourly.summary",
-                                                                  "hourly.icon",
-                                                                  "hourly.data.time",
-                                                                  "hourly.data.summary",
-                                                                  "hourly.data.icon",
-                                                                  "hourly.data.precipIntensity",
-                                                                  "hourly.data.precipProbability",
-                                                                  "hourly.data.temperature",
-                                                                  "hourly.data.apparentTemperature",
-                                                                  "hourly.data.dewPoint",
-                                                                  "hourly.data.humidity",
-                                                                  "hourly.data.pressure",
-                                                                  "hourly.data.windSpeed",
-                                                                  "hourly.data.windGust",
-                                                                  "hourly.data.windBearing",
-                                                                  "hourly.data.cloudCover",
-                                                                  "hourly.data.uvIndex",
-                                                                  "hourly.data.visibility"))
-i = 1 ## test out with first row
-call = apiCallWriter(crash2$lat[i], crash2$lon[i], crash2$CrashUnixTime[i])
-test = apiData(call)
+masterWeather = setNames(data.table(matrix(nrow = 0,
+                                           ncol = 24)),
+                         c(## City of Chicago crash data columns
+                           "ICN",
+                           "CrashID",
+                           "CrashDate",
+                           "TimeOfCrash",
+                           
+                           ## Feature Engineering for DarkSky columns
+                           "CrashUnixTime",
+                           "MinutesFromInput",
+                           
+                           ## relevant DarkSky weather data columns
+                           "hourly.summary",
+                           "hourly.icon",
+                           "hourly.data.time",
+                           "hourly.data.summary",
+                           "hourly.data.icon",
+                           "hourly.data.precipIntensity",
+                           "hourly.data.precipProbability",
+                           "hourly.data.temperature",
+                           "hourly.data.apparentTemperature",
+                           "hourly.data.dewPoint",
+                           "hourly.data.humidity",
+                           "hourly.data.pressure",
+                           "hourly.data.windSpeed",
+                           "hourly.data.windGust",
+                           "hourly.data.windBearing",
+                           "hourly.data.cloudCover",
+                           "hourly.data.uvIndex",
+                           "hourly.data.visibility"))
 
-# sample darksky call ----
-call = apiCallWriter(lat = 41.90337, lon = -87.68947, time = 1576612000)
-test = apiData(call)
-## whatever the day of the epoch time within the location's time zone, API call returns that entire day
-
+for(i in c(1:nrow(darkskyinput))){ ## you only get 1,000 free calls per day, run on a small subset to test/develop
+  call = apiCallWriter(darkskyinput$lat[i], darkskyinput$lon[i], darkskyinput$CrashUnixTime[i])
+  print(call)
+  sub = apiData(call) %>%
+    mutate(TimeFromInput = abs(hourly.data.time - darkskyinput$CrashUnixTime[i]),
+           CrashUnixTime = darkskyinput$CrashUnixTime[i],
+           TimeOfCrash = darkskyinput$TimeOfCrash[i],
+           CrashDate = darkskyinput$CrashDate[i],
+           ICN = darkskyinput$ICN[i],
+           CrashID = darkskyinput$CrashID[i]) %>%
+    ## whatever the day of the epoch time within the location's time zone,
+    ## DarkSky API call returns hourly weather data for the entire day.
+    ## here, choose only the weather data for hour nearest the crash
+    filter(TimeFromInput == min(TimeFromInput)) %>%
+    mutate(TimeFromInput = TimeFromInput / 60) %>%
+    rename(MinutesFromInput = TimeFromInput) %>%
+    select("ICN",
+           "CrashID",
+           "CrashDate",
+           "TimeOfCrash",
+           "CrashUnixTime",
+           "MinutesFromInput",
+           "hourly.summary",
+           "hourly.icon",
+           "hourly.data.time",
+           "hourly.data.summary",
+           "hourly.data.icon",
+           "hourly.data.precipIntensity",
+           "hourly.data.precipProbability",
+           "hourly.data.temperature",
+           "hourly.data.apparentTemperature",
+           "hourly.data.dewPoint",
+           "hourly.data.humidity",
+           "hourly.data.pressure",
+           "hourly.data.windSpeed",
+           "hourly.data.windGust",
+           "hourly.data.windBearing",
+           "hourly.data.cloudCover",
+           "hourly.data.uvIndex",
+           "hourly.data.visibility")
+  
+  masterWeather = rbind(masterWeather, sub)
+  }
+View(masterWeather)
