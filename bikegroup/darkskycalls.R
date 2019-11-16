@@ -131,3 +131,4 @@ for(i in c(1:nrow(darkskyinput))){ ## you only get 1,000 free calls per day, run
   masterWeather = rbind(masterWeather, sub)
   }
 View(masterWeather)
+
