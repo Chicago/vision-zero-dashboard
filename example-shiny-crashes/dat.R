@@ -13,6 +13,7 @@ loadinstall_libraries("leaflet")
 loadinstall_libraries("RColorBrewer")
 loadinstall_libraries("sp")
 loadinstall_libraries("ggplot2")
+loadinstall_libraries("bit64")
 
 sourceDir("functions")
 ##==============================================================================

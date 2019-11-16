@@ -1,5 +1,7 @@
 # Vision Zero Dashboard
 
+last updated: 11/16/2019 12:26 PM CST
+
 ## About the Meetup
 
 This is the repository to support the meetup, the signup is here:
@@ -46,6 +48,19 @@ Examples of dashboards from other cities, and Illinois:
 - [New York (citizen created)](http://crashmapper.org/#/?cfat=true&cinj=true&endDate=2019-02&geo=citywide&identifier=&lat=40.696518118094616&lng=-73.91738891601562&lngLats=%255B%255D&mfat=true&minj=true&noInjFat=false&pfat=true&pinj=true&startDate=2019-02&zoom=11)
 - [New York (official)](http://www.nycvzv.info/)
 - [Toronto](https://www.toronto.ca/services-payments/streets-parking-transportation/road-safety/vision-zero/safety-measures-and-mapping/)
+
+## Technical Details
+
+Please fork, clone, push, and then issue pull requests to the Chicago repository. Please use the issues in Chicago for general discussion, unless you have topics specific to your group.  The d`discussion` tag indicates discussion areas.
+
+To install `geneorama` please uuse devtools, `devtools::install_github("geneorama/geneorama")`
+
+Please use the metadata for the crash data in `data-idot` to understand the nuance of the crash data.
+
+Gnenerally speaking, reference data can be found in the `resources\` folder, including a Word Document with dashboard examples. The final example in that document is a template created by CDOT which represents a great starting point.  From a technical perspective, check out the `example-shiny-crashes\` app.  
+
+** Please use issues!  Let us know what you're thinking. 
+
 
 ## About the Chicago R User Group and Shiny
 
