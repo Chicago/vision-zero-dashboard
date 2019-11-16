@@ -1,0 +1,42 @@
+no,name,type,desc
+1,ICN,Text,"Illinois Case Number (ICN) is a unique identifier assigned to each crash by the Crash Information System (CIS).  It is used to link records between the Crash, Vehicle, and Person levels.  At the Crash level, the ICN will appear one time for each crash.  At the Vehicle and Person levels, the ICN may appear multiple times depending on the number of vehicles and persons involved with the crash.  ICN’s for years prior to 2010 may be eight or 12 characters, while ICN’s for years 2010 and later are 12 characters.  For ICN’s with eight characters, the first character represents the year of the crash.  For ICN’s with 12 characters, the first four characters represent the year of the crash."
+2,CrashID,Text,"Similar in function to the ICN, the CrashID is a unique identifier assigned to each crash by CIS.  The CrashID is included in the Crash level and will appear once for each crash.  Statewide crash data extract files do not include the CrashID at the Vehicle and Person levels.  County and City crash data extract files may or may not include the CrashID at the Vehicle and Person level, depending on the extract year.  It is advised that you check the extract files prior to import to determine field position."
+3,CrashReportUnitNbr,Numeric,Number which identifies each unit involved in the crash.
+4,VIN11,Text,First 11 characters of the Vehicle Identification Number.
+5,NbrOccupants,Text,Number of persons in vehicle—driver plus passengers.
+6,VehTypeCode,Numeric,Code for type of vehicle involved in crash.
+7,VehUseCode,Numeric,Code for how the vehicle type was used.
+8,VehDefectsCode,Numeric,Code for vehicle defects contributing to crash.
+9,VehManeuverPriorCode,Numeric,Code for vehicle maneuver prior to crash.
+10,DirectionPriorTravelCode,Numeric,Code for Direction vehicle was travelling prior to crash.
+11,IsTowed,Text,Vehicle towed/not towed due to crash.
+12,IsFire,Text,Vehicle fire/no fire as result of crash.
+13,IsHazMatSpill,Text,Vehicle leaking/not leaking hazardous materials.  Removed from page 1 of the 2013 SR 1050 form and is derived from the Commercial Motor Vehicle portion on page 2
+14,IsCommercial,Text,Vehicle is/is not a commercial vehicle.
+15,EventMostSevereCode,Numeric,Code for most severe event in the sequence of events (SOE).
+16,EventMostSevereLocCode,Numeric, Code for location of the vehicle when the most harmful event took place.
+17,MostHarmfulEventNo,Numeric,"Of the three SOE’s, which was the most harmful (1, 2, or 3)."
+18,CrashEvent1Code,Numeric,Code for first event of vehicle in SOE.
+19,CrashEvent2Code,Numeric,Code for second event of vehicle in SOE.
+20,CrashEvent3Code,Numeric,Code for third event of vehicle in SOE.
+21,Event1LocCode,Numeric,Code for location of vehicle at first event.
+22,Event2LocCode,Numeric,Code for location of vehicle at second event.
+23,Event3LocCode,Numeric,Code for location of vehicle at third event.
+24,VehPointOfFirstContactCode,Numeric,Code for area of vehicle where first contact was made.
+25,DirectionPriorTravel,Text,Text for field 10
+26,VehDefects,Text,Text for field 8
+27,VehManeuverPrior,Text,Text for field 9
+28,VehType,Text,Text for field 6
+29,VehUse,Text,Text for field 7
+30,EventMostSevere,Text,Text for field 17
+31,EventMostSevereLoc,Text,Text for field 18
+32,CrashEvent1,Text,Text for field 20
+33,CrashEvent2,Text,Text for field 21
+34,CrashEvent3,Text,Text for field 22
+35,Event1Loc,Text,Text for field 23
+36,Event2Loc,Text,Text for field 24
+37,Event3Loc,Text,Text for field 25
+38,VehYear,Text,Four digit year for Vehicle Model
+39,VehMake,Text,Text for Vehicle Make
+40,VehModel,Text,Text for Vehicle Model
+41,ExceedingSpeedLimit,Text,Vehicle did/did not exceed speed limit.    Added 2013
