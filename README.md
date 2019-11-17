@@ -25,7 +25,7 @@ The purpose of the proposed dashboard is to help Vision Zero Chicago achieve its
 
 There are a wide variety of ways this information could be communicated, and technologies that could be used.  We feel that it would be best to begin with open source software and open data. The most relevant data that we would want to communicate is already publicly available on the open data portal: https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if
 
-The data sets include crash, vehicle, and person information reported into our eCrash system.  These data sets are updated on a daily basis.
+The data sets include crash, vehicle, and person information reported into our eCrash system.  These data sets are updated daily.
 
 We are also working with IDOT to determine how we can incorporate data for prior years so that we can accurately measure progress toward goals, and identify trends.
 
@@ -53,13 +53,13 @@ Examples of dashboards from other cities, and Illinois:
 
 ## Technical Details
 
-Please fork, clone, push, and then issue pull requests to the Chicago repository. Please use the issues in Chicago for general discussion, unless you have topics specific to your group.  The d`discussion` tag indicates discussion areas.
+Please fork, clone, push, and then issue pull requests to the Chicago repository. Please use the issues in Chicago for general discussion, unless you have topics specific to your group.  The `discussion` tag indicates discussion areas.
 
-To install `geneorama` please uuse devtools, `devtools::install_github("geneorama/geneorama")`
+To install `geneorama` please use devtools, `devtools::install_github("geneorama/geneorama")`
 
 Please use the metadata for the crash data in `data-idot` to understand the nuance of the crash data.
 
-Gnenerally speaking, reference data can be found in the `resources\` folder, including a Word Document with dashboard examples. The final example in that document is a template created by CDOT which represents a great starting point.  From a technical perspective, check out the `example-shiny-crashes\` app.  
+Generally speaking, reference data can be found in the `resources\` folder, including a Word Document with dashboard examples. The final example in that document is a template created by CDOT which represents a great starting point.  From a technical perspective, check out the `example-shiny-crashes\` app.  
 
 ** Please use issues!  Let us know what you're thinking. 
 
