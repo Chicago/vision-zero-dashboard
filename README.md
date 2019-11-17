@@ -1,10 +1,8 @@
 ﻿# Vision Zero Dashboard
 
-last updated: 11/16/2019 12:26 PM CST
+last updated: 11/17/2019 2:33 PM CST
 
 ## About the Meetup
-
-## Adding this Header
 
 This is the repository to support the meetup, the signup is here:
 
