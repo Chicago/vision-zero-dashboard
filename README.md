@@ -1,5 +1,7 @@
 ﻿# Vision Zero Dashboard
 
+last updated: 11/16/2019 12:26 PM CST
+
 ## About the Meetup
 
 ## Adding this Header
@@ -49,6 +51,19 @@ Examples of dashboards from other cities, and Illinois:
 - [New York (official)](http://www.nycvzv.info/)
 - [Toronto](https://www.toronto.ca/services-payments/streets-parking-transportation/road-safety/vision-zero/safety-measures-and-mapping/)
 
+## Technical Details
+
+Please fork, clone, push, and then issue pull requests to the Chicago repository. Please use the issues in Chicago for general discussion, unless you have topics specific to your group.  The d`discussion` tag indicates discussion areas.
+
+To install `geneorama` please uuse devtools, `devtools::install_github("geneorama/geneorama")`
+
+Please use the metadata for the crash data in `data-idot` to understand the nuance of the crash data.
+
+Gnenerally speaking, reference data can be found in the `resources\` folder, including a Word Document with dashboard examples. The final example in that document is a template created by CDOT which represents a great starting point.  From a technical perspective, check out the `example-shiny-crashes\` app.  
+
+** Please use issues!  Let us know what you're thinking. 
+
+
 ## About the Chicago R User Group and Shiny
 
 The CRUG Organization is focused on R, which is an open source language with broad application and compatibility with other technology. The open source software company R Studio has developed a library that works with R to create modern, secure, websites.
@@ -57,3 +72,5 @@ You can learn more about the web development software, and view examples here:
 https://shiny.rstudio.com
 https://shiny.rstudio.com/gallery/
  
+
+<img src="https://design.chicago.gov/assets/img/seals/1990-blue.png" width="400" alt="City Seal of Chicago"/>
