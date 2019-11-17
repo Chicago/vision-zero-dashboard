@@ -1,6 +1,8 @@
-# Vision Zero Dashboard
+﻿# Vision Zero Dashboard
 
 ## About the Meetup
+
+## Adding this Header
 
 This is the repository to support the meetup, the signup is here:
 
