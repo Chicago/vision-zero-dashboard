@@ -1,5 +1,7 @@
 
 library(leaflet)
+library(shinydashboard)
+library(shinyjs)
 
 ##------------------------------------------------------------------------------
 ## FUNCTIONS FOR IP LOGGING
@@ -10,25 +12,46 @@ geneorama::set_project_dir("vision-zero-dashboard")
 ## UI
 ##------------------------------------------------------------------------------
 
-ui <- bootstrapPage(
-    tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
-    leafletOutput("map", width = "50%", height = "100%"),
-    absolutePanel(top = 10, 
-                  right = 10,
+ui <- dashboardPage(
+  #tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
+
+  dashboardHeader(title="Filter data"),
+
+  dashboardSidebar(sidebarMenuOutput("Semi_collapsible_sidebar"),
+                   tags$script("$(document).on('click', '.sidebar-toggle', function () {
+Shiny.onInputChange('SideBar_col_react', Math.random())});"),
+                   tags$script("$(document).on('click', '.treeview.active', function () {
+$(this).removeClass('active');
+$(this).find( 'ul' ).removeClass('menu-open');
+$(this).find( 'ul' ).css('display', 'none');
+
+            });")),
+  dashboardBody(
+    tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
+    leafletOutput("map", width = "73%", height = "900px"),
+    absolutePanel(id = "input_panel",
+                  
+                  style = "opacity: 0.92",
+      
+                  fixed = TRUE,
+                  top = 60, left = "auto", right = 20, 
+                  bottom = "auto",
+                  width = 330, height = "auto",
+                  draggable = TRUE,
                   h1("Vision Zero Example"),
                   h2("Map datasource options:"),
-                  radioButtons(inputId = "MapRegions", 
-                               label = "Map Regions:", 
+                  radioButtons(inputId = "MapRegions",
+                               label = "Map Regions:",
                                selected = "community",
                                choices = c("Census Tracts" = "census",
-                                           "Community Areas" = "community"), 
-                               inline = TRUE, 
+                                           "Community Areas" = "community"),
+                               inline = TRUE,
                                width = NULL),
-                  radioButtons(inputId = "MapStatistic", 
-                               label = "Map Statistic:", 
+                  radioButtons(inputId = "MapStatistic",
+                               label = "Map Statistic:",
                                selected = "population",
                                choices = c("Income" = "income",
-                                           "Population" = "population"), 
+                                           "Population" = "population"),
                                inline = TRUE,
                                width = NULL),
                   h2("Choose year and statistics:"),
@@ -39,7 +62,7 @@ ui <- bootstrapPage(
                               multiple = FALSE),
                   selectInput(inputId = "SourceSeverity",
                               label = "Highest severity:",
-                              choices = c("No Injuries", 
+                              choices = c("No Injuries",
                                           "C Injury Crash",
                                           "B Injury Crash",
                                           "A Injury Crash",
@@ -56,19 +79,26 @@ ui <- bootstrapPage(
                   checkboxInput(inputId = "showVehicleMake",
                                 label = "Show vehicle make icons",
                                 value = FALSE),
-                  h2("Correlation maps:"),
-                  plotOutput("population_plot", width = 600),
+                  #h2("Correlation maps:"),
+                  #plotOutput("population_plot", width = 600),
                   # plotOutput("population_plot", height = 300, width = 600),
                   # plotOutput("population_plot", height=300,
                   #            click = "plot_click",  # Equiv, to click=clickOpts(id="plot_click")
                   #            hover = hoverOpts(id = "plot_hover", delayType = "throttle"),
                   #            brush = brushOpts(id = "plot_brush")),
-                  plotOutput("income_plot", width = 600,
-                             click = "plot_click",  # Equiv, to click=clickOpts(id="plot_click")
-                             hover = hoverOpts(id = "plot_hover", delayType = "throttle"),
-                             brush = brushOpts(id = "plot_brush"))
+                  # plotOutput("income_plot", width = 600,
+                  #            click = "plot_click",  # Equiv, to click=clickOpts(id="plot_click")
+                  #            hover = hoverOpts(id = "plot_hover", delayType = "throttle"),
+                  #            brush = brushOpts(id = "plot_brush"))
                   # tableOutput('ca_summary'),
                   # tableOutput('zonedata_summary_sh')
-                  )
+    )
+    
+  )
+  #dashboardBody(tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css"))),
+
+
+
 )
+
 
