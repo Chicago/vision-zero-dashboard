@@ -13,7 +13,6 @@
 ##==============================================================================
 
 library(RSQLite)
-library(data.table)
 
 ###------------------------------------------------------------------------------
 ### CREATE DATABASE OR CONNECT TO EXSITING DATABASE
@@ -85,7 +84,12 @@ rm(vehicle)
 dbExecute(conn, "CREATE INDEX people_icn ON people(ICN);")
 dbExecute(conn, "CREATE INDEX vehicle_icn ON vehicle(ICN);")
 
-# SAMPLE QUERY
+
+###------------------------------------------------------------------------------
+### SAMPLE QUERIES
+###------------------------------------------------------------------------------
+
+# SELECT QUERIES
 crash <- dbGetQuery(conn, "SELECT * FROM crash LIMIT 10")
 people <- dbGetQuery(conn, "SELECT * FROM people LIMIT 10")
 vehicle <- dbGetQuery(conn, "SELECT * FROM vehicle LIMIT 10")
@@ -119,6 +123,20 @@ sql <- "SELECT VehMake, COUNT(*) AS N
 
 vehicle_agg <- dbGetQuery(conn, sql)
 vehicle_agg
+
+
+sql <- "SELECT 2000 + c.CrashYear, c.TotalInjured, c.TotalFatals, c.CrashSeverity,
+               p.PersonType, p.AgeAtCrash, p.Gender,
+               v.VehYear, v.VehicleMake, v.VehModel
+        FROM crash c
+        LEFT JOIN people p
+            ON c.ICN = p.ICN
+        LEFT JOIN vehicle v
+            ON c.ICN = v.ICN
+        LIMIT 20
+       "
+merge_df <- dbGetQuery(conn, sql)
+merge_df
 
 ### DISCONNECT 
 dbDisconnect(conn)

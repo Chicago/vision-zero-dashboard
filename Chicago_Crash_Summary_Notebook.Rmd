@@ -1,0 +1,691 @@
+---
+title: "Chicago Crash Summary Stats Analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Notebook answers basic What, When, Where, Who, Why, and How questions of Crash data.
+
+
+```{r}
+suppressPackageStartupMessages(library(RSQLite))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(scales))
+
+seabornPalette <- c("#4c72b0","#55a868","#c44e52","#8172b2","#ccb974","#64b5cd","#4c72b0","#55a868",
+                    "#c44e52","#8172b2","#ccb974","#64b5cd","#4c72b0","#55a868","#c44e52","#8172b2",
+                    "#ccb974","#64b5cd","#4c72b0","#55a868","#c44e52","#8172b2","#ccb974","#64b5cd",
+                    "#4c72b0","#55a868","#c44e52","#8172b2","#ccb974","#64b5cd","#4c72b0","#55a868",
+                    "#c44e52","#8172b2","#ccb974","#64b5cd","#4c72b0","#55a868","#c44e52","#8172b2",
+                    "#ccb974","#64b5cd","#4c72b0","#55a868","#c44e52","#8172b2","#ccb974","#64b5cd",
+                    "#4c72b0","#55a868","#c44e52","#8172b2","#ccb974","#64b5cd","#4c72b0","#55a868",
+                    "#c44e52","#8172b2","#ccb974","#64b5cd")
+```
+
+
+### Database Connection
+
+Using the prepared SQLite database (see db_migration.R)
+
+```{r}
+conn <- dbConnect(RSQLite::SQLite(), "data-idot/IL_Crash_Data.db")
+```
+
+---
+
+## What?
+
+- ### What collision types are occurring?
+- ### What vehicle types are invovled?
+- ### What vehicle make/models are associated?
+
+```{r}
+sql <- "WITH sub AS (
+          SELECT CASE CollisionTypeCode
+                      WHEN 1 THEN 'Pedestrian'
+                      WHEN 2 THEN 'Pedalcyclist'
+                      WHEN 3 THEN 'Train'
+                      WHEN 4 THEN 'Animal'
+                      WHEN 5 THEN 'Overturned'
+                      WHEN 6 THEN 'Fixed Object'
+                      WHEN 7 THEN 'Other Object'
+                      WHEN 8 THEN 'Other non-collision'
+                      WHEN 9 THEN 'Parked Motor vehicle'
+                      WHEN 10 THEN 'Turning'
+                      WHEN 11 THEN 'Rear-end'
+                      WHEN 12 THEN 'Sideswipe-same direction'
+                      WHEN 13 THEN 'Sideswipe-opposite direction'
+                      WHEN 14 THEN 'Head-on'
+                      WHEN 15 THEN 'Angle'
+                      ELSE 'Other'
+                 END AS CollisionType, CityClassCode,
+                 NumberOfVehicles, TotalInjured, NoInjuries, AInjuries, BInjuries, CInjuries, TotalFatals
+        FROM crash  
+      )
+
+        SELECT CollisionType, 
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM sub
+        WHERE CityClassCode = 3
+        GROUP BY CollisionType"
+       
+crash_agg <- dbGetQuery(conn, sql)
+crash_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(crash_agg, varying = names(crash_agg)[-1], times = names(crash_agg)[-1],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=CollisionType)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 65E4), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Collision Type - Total Counts") +
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        legend.position="bottom")
+```
+
+```{r}
+sql <- "WITH sub AS (
+            SELECT CASE VehTypeCode
+                        WHEN 1 THEN 'Passenger car'
+                        WHEN 2 THEN 'Pickup truck'
+                        WHEN 3 THEN 'Van/mini-van'
+                        WHEN 4 THEN 'Bus up to 15 passengers'
+                        WHEN 5 THEN 'Bus over 15 passengers'
+                        WHEN 6 THEN 'Truck – single unit'
+                        WHEN 7 THEN 'Tractor w/semi-trailer'
+                        WHEN 8 THEN 'Tractor w/o semi-trailer'
+                        WHEN 9 THEN 'Farm equipment'
+                        WHEN 10 THEN 'Motorcycle (over 150 cc)'
+                        WHEN 11 THEN 'Motor driven cycle'
+                        WHEN 12 THEN 'Snowmobile'
+                        WHEN 13 THEN 'All-terrain vehicle (ATV)'
+                        WHEN 14 THEN 'Other vehicle with trailer'
+                        WHEN 15 THEN 'Sport utility vehicle (SUV)'
+                        WHEN 16 THEN 'Other'
+                        WHEN 20 THEN 'Autocycle    Added for 2015'
+                        WHEN 99 THEN 'Unknown/NA'
+                   END AS VehType, c.CityClassCode,
+                   c.NumberOfVehicles, c.TotalInjured, c.NoInjuries, c.AInjuries, 
+                   c.BInjuries, c.CInjuries, c.TotalFatals, v.NbrOccupants
+            FROM crash c
+            LEFT JOIN vehicle v
+               ON c.ICN = v.ICN
+            WHERE c.CityClassCode = 3
+        )
+
+        SELECT VehType,
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals,
+               SUM(NbrOccupants) AS Total_Occupants
+        FROM sub
+        GROUP BY VehType
+        ORDER BY Count(*) DESC"
+       
+vehicle_agg <- dbGetQuery(conn, sql)
+vehicle_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(vehicle_agg[1:10,], varying = names(vehicle_agg)[-1], times = names(vehicle_agg)[-1],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=VehType)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Top 10 Vehicle Types by Observations") +
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        legend.position="bottom")
+```
+
+
+```{r}
+sql <- "SELECT v.VehMake || '  ' || v.VehModel AS VehMakeModel,
+               COUNT(*) AS N, 
+               SUM(c.NumberOfVehicles) AS Total_Vehicles,
+               SUM(c.TotalInjured) AS Total_Injuries,
+               SUM(c.NoInjuries) AS Total_NoInjuries,
+               SUM(c.AInjuries) AS Total_AInjuries,
+               SUM(c.BInjuries) AS Total_BInjuries,
+               SUM(c.CInjuries) AS Total_CInjuries,
+               SUM(c.TotalFatals) AS Total_Fatals,
+               SUM(v.NbrOccupants) AS Total_Occupants
+        FROM crash c
+        LEFT JOIN vehicle v
+           ON c.ICN = v.ICN
+        WHERE c.CityClassCode = 3
+        GROUP BY v.VehMake || '  ' || v.VehModel
+        ORDER BY Count(*) DESC"
+       
+vehicle_agg <- dbGetQuery(conn, sql)
+vehicle_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(vehicle_agg[1:10,], varying = names(vehicle_agg)[-1], times = names(vehicle_agg)[-1],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=VehMakeModel)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Top 10 Vehicle Make and Model") +
+  guides(fill=guide_legend(title="Make / Model")) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        legend.position="bottom")
+```
+
+---
+
+## When?
+
+- ### When are crashes occurring across years?
+- ### When are crashes occurring by day of week?
+- ### When are crashes occcurring within a day?
+
+```{r}
+sql <- "SELECT 2000 + CrashYear As [Year], 
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM crash
+        GROUP BY CrashYear"
+       
+crash_agg <- dbGetQuery(conn, sql)
+crash_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(crash_agg, varying = names(crash_agg)[-1], times = names(crash_agg)[-1],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(Year))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), limits=c(0,22E4), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Year") +
+  guides(fill=guide_legend(title="Year", nrow = 1)) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        legend.position="bottom")
+```
+
+```{r}
+sql <- "WITH sub AS (
+          SELECT CASE DayOfWeekCode
+                      WHEN 1 THEN 'Monday'
+                      WHEN 2 THEN 'Tuesday'
+                      WHEN 3 THEN 'Wednesday'
+                      WHEN 4 THEN 'Thursday'
+                      WHEN 5 THEN 'Friday'
+                      WHEN 6 THEN 'Saturday'
+                      WHEN 7 THEN 'Sunday'
+                 END AS DayOfWeek, DayOfWeekCode,
+                 CASE  
+                      WHEN CrashHour BETWEEN 0 AND 5 THEN 'Early Morning'
+                      WHEN CrashHour BETWEEN 6 AND 9 THEN 'PM Rush Hour'
+                      WHEN CrashHour BETWEEN 10 AND 14 THEN 'Midday/Afternoon'
+                      WHEN CrashHour BETWEEN 15 AND 18 THEN 'PM Rush Hour'
+                      WHEN CrashHour BETWEEN 19 AND 23 THEN 'Late Evening'
+                 END AS PartOfDay,
+                 CASE  
+                      WHEN CrashHour BETWEEN 0 AND 5 THEN 1
+                      WHEN CrashHour BETWEEN 6 AND 9 THEN 2
+                      WHEN CrashHour BETWEEN 10 AND 14 THEN 3
+                      WHEN CrashHour BETWEEN 15 AND 18 THEN 4
+                      WHEN CrashHour BETWEEN 19 AND 23 THEN 5
+                 END AS PartOfDayCode, CityClassCode,
+                 NumberOfVehicles, TotalInjured, NoInjuries, AInjuries, BInjuries, CInjuries, TotalFatals
+        FROM crash  
+      )
+
+        SELECT DayOfWeek,
+               PartOfDay,  
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM sub
+        WHERE CityClassCode = 3
+        GROUP BY DayOfWeek,
+                 DayOfWeekCode,
+                 PartOfDay,
+                 PartOfDayCode
+        ORDER BY DayOfWeekCode,
+                 PartOfDayCode"
+       
+crash_agg <- dbGetQuery(conn, sql)
+crash_agg
+```
+
+```{r, fig.width=10, fig.height=10}
+rdf <- reshape(crash_agg, varying = names(crash_agg)[3:ncol(crash_agg)], 
+               times = names(crash_agg)[3:ncol(crash_agg)],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+rdf$DayOfWeek <- factor(rdf$DayOfWeek, 
+                        levels = c("Monday", "Tuesday", "Wednesday", "Thursday", 
+                                   "Friday", "Saturday", "Sunday"))
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(PartOfDay))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Weekday and Part of Day") +
+  guides(fill=guide_legend(title="Part of Day", nrow = 1)) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        axis.text.x = element_text(angle = 90),
+        legend.position="top") + 
+  facet_wrap(~DayOfWeek)
+```
+
+---
+
+## Where?
+
+- ### Where in terms of traffic right of ways are crashes occurring?
+
+
+```{r}
+sql <- "WITH sub AS (
+          SELECT CASE ClassOfTrafficwayCode 
+                      WHEN 0 THEN 'Unmarked Highway rural'
+                      WHEN 1 THEN 'Controlled rural'
+                      WHEN 2 THEN 'State numbered rural'
+                      WHEN 3 THEN 'County and local roads rural'
+                      WHEN 4 THEN 'Toll roads rural'
+                      WHEN 5 THEN 'Controlled urban'
+                      WHEN 6 THEN 'State numbered urban'
+                      WHEN 7 THEN 'Unmarked highway urban'
+                      WHEN 8 THEN 'City streets urban'
+                      WHEN 9 THEN 'Toll roads urban'
+                      ELSE 'Other'
+                 END AS ClassOfTrafficway, CityClassCode,
+                 NumberOfVehicles, TotalInjured, NoInjuries, AInjuries, BInjuries, CInjuries, TotalFatals
+        FROM crash  
+      )
+
+        SELECT ClassOfTrafficway, 
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM sub
+        WHERE CityClassCode = 3
+        GROUP BY ClassOfTrafficway"
+       
+crash_agg <- dbGetQuery(conn, sql)
+crash_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(crash_agg, varying = names(crash_agg)[-1], times = names(crash_agg)[-1],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(ClassOfTrafficway))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0,15E5), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Traffic Way") +
+  guides(fill=guide_legend(title="Traffic Way")) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        legend.position="top")
+```
+
+---
+
+## Who?
+
+- ### Who is involved in crashes by person types?
+- ### Who is involved in crashes by age groups?
+- ### Who is involved in crashes by gender?
+
+```{r}
+sql <- "WITH sub AS (
+           SELECT CAST(CAST(p.AgeAtCrash / 10 AS INT) * 10 AS TEXT) || 's' AS AgeGroup, 
+                  CASE p.PersonTypeCode
+                       WHEN 1 THEN 'Driver'
+                       WHEN 2 THEN 'Pedestrian'
+                       WHEN 3 THEN 'Pedalcyclist'
+                       WHEN 4 THEN 'Equestrian'
+                       WHEN 5 THEN 'Occupant of non-motorized vehicle'
+                       WHEN 6 THEN 'Noncontact vehicle'
+                       WHEN 7 THEN 'Passenger'
+                       ELSE 'Unknown'
+                  END AS PersonType, c.CityClassCode,
+                  c.NumberOfVehicles, c.TotalInjured, c.NoInjuries,
+                  c.AInjuries, c.BInjuries, c.CInjuries, c.TotalFatals
+        FROM crash c
+        LEFT JOIN people p
+          ON c.ICN = p.ICN
+      )
+
+       SELECT  AgeGroup, 
+               PersonType,
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM sub
+        GROUP BY AgeGroup,
+                 PersonType"
+       
+people_agg <- dbGetQuery(conn, sql)
+people_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(people_agg, varying = names(people_agg)[3:ncol(people_agg)], 
+               times = names(people_agg)[3:ncol(people_agg)],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+rdf$AgeGroup <- factor(rdf$AgeGroup, levels = paste0(seq(0,110, 10), "'s"))
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(PersonType))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Person Type and Age Group") +
+  guides(fill=guide_legend(title="Person Type")) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        legend.position="top") + 
+  facet_wrap(~AgeGroup)
+```
+
+
+```{r}
+sql <- "WITH sub AS (
+           SELECT CASE p.Gender
+                       WHEN 'M' THEN 'Male'
+                       WHEN 'F' THEN 'Female'
+                       WHEN 'U' THEN 'Unknown'
+                       ELSE 'Other'
+                  END As Gender,
+                  CASE p.PersonTypeCode
+                       WHEN 1 THEN 'Driver'
+                       WHEN 2 THEN 'Pedestrian'
+                       WHEN 3 THEN 'Pedalcyclist'
+                       WHEN 4 THEN 'Equestrian'
+                       WHEN 5 THEN 'Occupant of non-motorized vehicle'
+                       WHEN 6 THEN 'Noncontact vehicle'
+                       WHEN 7 THEN 'Passenger'
+                       ELSE 'Unknown'
+                  END AS PersonType, c.CityClassCode,
+                  c.NumberOfVehicles, c.TotalInjured, c.NoInjuries,
+                  c.AInjuries, c.BInjuries, c.CInjuries, c.TotalFatals
+        FROM crash c
+        LEFT JOIN people p
+          ON c.ICN = p.ICN
+      )
+
+       SELECT  Gender, 
+               PersonType,
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM sub
+        GROUP BY Gender,
+                 PersonType"
+       
+people_agg <- dbGetQuery(conn, sql)
+people_agg
+```
+
+```{r, fig.width=10, fig.height=10}
+rdf <- reshape(people_agg, varying = names(people_agg)[3:ncol(people_agg)], 
+               times = names(people_agg)[3:ncol(people_agg)],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(PersonType))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Person Type and Gender") +
+  guides(fill=guide_legend(title="Person Type")) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        axis.text.x = element_text(angle = 90, vjust=0.1),
+        legend.position="top") + 
+  facet_wrap(~Gender)
+```
+
+
+## Why?
+
+- ### Why are crashes occurring?
+
+```{r}
+sql <- "WITH sub AS (
+           SELECT CASE p.DRAC
+                       WHEN 1 THEN 'Normal'
+                       WHEN 2 THEN 'Impaired – alcohol'
+                       WHEN 3 THEN 'Impaired – drugs'
+                       WHEN 4 THEN 'Illness'
+                       WHEN 5 THEN 'Asleep/fainted'
+                       WHEN 6 THEN 'Medicated'
+                       WHEN 7 THEN 'Had been drinking'
+                       WHEN 8 THEN 'Fatigued'
+                       WHEN 9 THEN 'Other/unknown'
+                       WHEN 10 THEN 'Other'
+                       WHEN 11 THEN 'Emotional (depressed, angry, disturbed)'
+                       WHEN 12 THEN 'Removed by EMS'
+                       ELSE 'Unknown Code'
+                  END DriverPhyiscalCondition, p.DRAC, 
+                  2000 + CrashYear AS [Year],
+                  c.NumberOfVehicles, c.TotalInjured, c.NoInjuries,
+                  c.AInjuries, c.BInjuries, c.CInjuries, c.TotalFatals
+        FROM crash c
+        LEFT JOIN people p
+          ON c.ICN = p.ICN
+        WHERE c.CityClassCode = 3
+      )
+
+       SELECT  DriverPhyiscalCondition,
+               [Year],
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM sub
+        GROUP BY DriverPhyiscalCondition,
+                 DRAC,
+                 [Year]
+        ORDER BY DRAC, 
+                 [Year]"
+       
+people_agg <- dbGetQuery(conn, sql)
+people_agg
+```
+
+```{r, fig.width=10, fig.height=20}
+rdf <- reshape(people_agg, varying = names(people_agg)[3:ncol(people_agg)], 
+               times = names(people_agg)[3:ncol(people_agg)],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(DriverPhyiscalCondition))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Driver Phyiscal Condition and Year") +
+  guides(fill=guide_legend(title="Driver Condition")) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        axis.text.x = element_text(angle = 90),
+        legend.position="top") +
+  facet_wrap(~Year, ncol=2)
+```
+
+---
+
+## How?
+
+- ### How are crashes occurring?
+- ### How severe are crashes?
+
+```{r}
+sql <- "WITH sub AS (
+            SELECT CASE VehManeuverPriorCode
+                        WHEN 1 THEN 'Straight ahead'
+                        WHEN 2 THEN 'Passing/overtaking'
+                        WHEN 3 THEN 'Turning left'
+                        WHEN 4 THEN 'Turning right'
+                        WHEN 5 THEN 'Turning on red'
+                        WHEN 6 THEN 'U-turn'
+                        WHEN 7 THEN 'Starting in traffic'
+                        WHEN 8 THEN 'Slow/stop – left turn'
+                        WHEN 9 THEN 'Slow/stop – right turn'
+                        WHEN 10 THEN 'Slow/stop – load/unload'
+                        WHEN 11 THEN 'Slow/stop in traffic'
+                        WHEN 12 THEN 'Driving wrong way'
+                        WHEN 13 THEN 'Changing lanes'
+                        WHEN 14 THEN 'Avoiding vehicles/objects'
+                        WHEN 15 THEN 'Skidding/control loss'
+                        WHEN 16 THEN 'Entering traffic lane from parking'
+                        WHEN 17 THEN 'Leaving traffic lane to park'
+                        WHEN 18 THEN 'Merging'
+                        WHEN 19 THEN 'Diverging'
+                        WHEN 20 THEN 'Enter from drive/alley'
+                        WHEN 21 THEN 'Parked'
+                        WHEN 22 THEN 'Parked in traffic lane'
+                        WHEN 23 THEN 'Backing'
+                        WHEN 24 THEN 'Driverless'
+                        WHEN 25 THEN 'Other'
+                        WHEN 26 THEN 'Negotiating a curve'
+                        WHEN 99 THEN 'Unknown/NA'
+                   END AS VehManeuverPrior, c.CityClassCode,
+                   c.NumberOfVehicles, c.TotalInjured, c.NoInjuries, c.AInjuries, 
+                   c.BInjuries, c.CInjuries, c.TotalFatals, v.NbrOccupants
+            FROM crash c
+            LEFT JOIN vehicle v
+               ON c.ICN = v.ICN
+            WHERE c.CityClassCode = 3
+        )
+
+        SELECT VehManeuverPrior,
+               COUNT(*) AS N, 
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals,
+               SUM(NbrOccupants) AS Total_Occupants
+        FROM sub
+        GROUP BY VehManeuverPrior
+        ORDER BY Count(*) DESC"
+       
+vehicle_agg <- dbGetQuery(conn, sql)
+vehicle_agg
+```
+
+```{r, fig.width=10, fig.height=5}
+rdf <- reshape(vehicle_agg[1:10,], varying = names(vehicle_agg)[-1], times = names(vehicle_agg)[-1],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(VehManeuverPrior))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Top 10 Vehicle Maneuvers Prior to Crash") +
+  guides(fill=guide_legend(title="Vehicle Maneuver")) + 
+  theme(plot.title = element_text(hjust=0.5, size=16),
+        legend.position="top")
+```
+
+```{r}
+sql <- "SELECT CrashSeverity,
+               2000 + CrashYear As [Year],
+               SUM(NumberOfVehicles) AS Total_Vehicles,
+               SUM(TotalInjured) AS Total_Injuries,
+               SUM(NoInjuries) AS Total_NoInjuries,
+               SUM(AInjuries) AS Total_AInjuries,
+               SUM(BInjuries) AS Total_BInjuries,
+               SUM(CInjuries) AS Total_CInjuries,
+               SUM(TotalFatals) AS Total_Fatals
+        FROM crash
+        GROUP BY CrashSeverity,
+                 2000 + CrashYear"
+       
+crash_agg <- dbGetQuery(conn, sql)
+crash_agg
+```
+
+```{r, fig.width=10, fig.height=10}
+rdf <- reshape(crash_agg, varying = names(crash_agg)[3:ncol(crash_agg)], 
+               times = names(crash_agg)[3:ncol(crash_agg)],
+               v.names = "Value", timevar = "Metric",
+               new.row.names = 1:1E5, direction = "long")
+
+ggplot(rdf, aes(x=Metric, y=Value, fill=factor(CrashSeverity))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(expand = c(0, 0), label=comma) +
+  scale_fill_manual(values=seabornPalette) +
+  labs(title="Crash Totals by Year and Crash Severity") +
+  guides(fill=guide_legend(title="Crash Severity")) + 
+  theme(plot.title = element_text(hjust=0.5, size=18),
+        axis.text.x = element_text(angle = 90),
+        legend.position="top") +
+  facet_wrap(~Year)
+```
+
+
+
+
+
+
+
+
+
+
+
