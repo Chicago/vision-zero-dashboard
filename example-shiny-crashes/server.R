@@ -331,7 +331,9 @@ server <- function(input, output, session) {
     #Adding a collapsible sidebar to add data filters to this application 
     
     vals <- reactiveValues()
+    
     vals$collapsed = FALSE
+    
     observeEvent(input$SideBar_col_react,
                  {
                      vals$collapsed=!vals$collapsed
@@ -497,6 +499,9 @@ server <- function(input, output, session) {
                 downloadButton(outputId = "dl", label = "Download Viz"),
                 class = "download_this")
     })
+    
+    #Our download handler prompts on the download button ui element and saves a leaflet map
+    #with the view set to that of the one on screen of the app.
     
     output$dl <- downloadHandler(
         filename = paste0(Sys.Date(),
