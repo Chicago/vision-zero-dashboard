@@ -16,6 +16,9 @@ ui <- dashboardPage(
   #tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
 
   dashboardHeader(title="Filter data"),
+  
+  #This code just allows the sidebar text to collapse when we collapse the sidebar in whole.
+  #It references our classes in style.css and some serverside code that allows for the collapse.
 
   dashboardSidebar(sidebarMenuOutput("Semi_collapsible_sidebar"),
                    tags$script("$(document).on('click', '.sidebar-toggle', function () {
@@ -31,7 +34,7 @@ $(this).find( 'ul' ).css('display', 'none');
     leafletOutput("map", width = "73%", height = "900px"),
     absolutePanel(id = "input_panel",
                   
-                  style = "opacity: 0.92",
+                  #started to add the css to change opacity on hover of this absolute Panel
       
                   fixed = TRUE,
                   top = 60, left = "auto", right = 20, 

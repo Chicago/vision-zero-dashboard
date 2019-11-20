@@ -482,6 +482,9 @@ server <- function(input, output, session) {
     #This code is just a messy example of an additional collapseable sidebar with a download button
     # and potential inputs for someone to filter data
     
+    #When we collapse it it changes what menu is rendered, dropping the UI elements
+    #so they don't get cut off weirdly.
+    
     output$Semi_collapsible_sidebar<-renderMenu({
         if (vals$collapsed)
             sidebarMenu(
