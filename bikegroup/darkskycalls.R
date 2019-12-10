@@ -4,8 +4,8 @@
 
 # ----
 ## Hypothesis: adverse weather conditions play a significant role in frequency and severity of traffic accidents.
-## To test: add weather data from DarkSky API
-## How: API call for each time (date & time of day) and place (latitude & longitude) observed in the data
+## To test: obtain weather data from DarkSky API
+## How: API call for each time (date & time of day) and place (latitude & longitude) of a traffic accident observed in our data
 
 # install libraries ----
 install.packages("httr")
