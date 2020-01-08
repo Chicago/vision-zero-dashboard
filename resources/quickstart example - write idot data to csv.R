@@ -1,4 +1,25 @@
 
+
+##==============================================================================
+## DESCRIPTION
+##==============================================================================
+
+##
+## How to quickly export crash / vehicle / person data to CSV
+##
+## **** PLEASE READ ****
+## PLEASE READ THE README IN THE IDOT FOLDER TO ACKNOWLEDGE IDOT'S TERMS AND 
+## LIMITATIONS.
+## ALSO, PLEASE READ THE META DATA SO THAT YOU UNDERSTAND THE CRASH DATA.
+##
+## ALL OF THESE FILES ARE CONTAINED IN THIS FOLDER
+## https://github.com/Chicago/vision-zero-dashboard/tree/master/data-idot
+##
+
+##==============================================================================
+## Setting up environment
+##==============================================================================
+
 ## Check if you have data.table, and install if needed
 ## You'll also need bit64 because of a weird issue with the ICN being 
 ## intrepreted as a large integer 
