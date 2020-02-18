@@ -1,0 +1,38 @@
+.sidebar-collapse .left-side, .sidebar-collapse .main-sidebar{ 
+ transform: translate(0,0);
+ width: 40px;
+ transition: transform 1s, width 1s;
+}
+
+.collapsed_text { 
+ color: black;
+}
+
+.main-sidebar, .left-side
+{
+ transition: transform 1s, width 1s;
+}
+
+.download_button{
+    height:40px;
+    width:57px;
+    color:white;
+    background-color:#000080;
+    border-color: #2e6da4
+}
+
+.controls {
+  /* Appearance */
+  background-color: white;
+  padding: 0 20px 20px 20px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+.controls:hover {
+  /* Fade in while hovering */
+  opacity: 0.95;
+  transition-delay: 0;
+}

@@ -7,6 +7,7 @@ library(geneorama)
 library(rgdal) #for reading/writing geo files
 library(rgeos) #for simplification
 library(sp)
+library(mapview)
 
 
 ##------------------------------------------------------------------------------
@@ -160,13 +161,23 @@ server <- function(input, output, session) {
     ## BASIC LEAFLET MAP
     ##--------------------------------------------------------------------------
     
-    output$map <- renderLeaflet({
+    #I changed these to make the map reactive so we can call it for download later.
+    
+    map_reactive <- reactive({
         
         leaflet() %>%
             # mymap <- leaflet() %>%
             addProviderTiles("Stamen.TonerHybrid") %>% 
             addPolygons(data = city_outline, fill = FALSE, color = "black", weight = 2) %>%
             fitBounds(-87.94011, 41.64454, -87.52414, 42.02304)
+        
+    })
+    
+    
+    output$map <- renderLeaflet({
+        
+        map_reactive()
+
     })
     
     ##--------------------------------------------------------------------------
@@ -316,5 +327,199 @@ server <- function(input, output, session) {
                 removeControl(layerId = "icon_legend")
         }
     })
+    
+    #Adding a collapsible sidebar to add data filters to this application 
+    
+    vals <- reactiveValues()
+    
+    vals$collapsed = FALSE
+    
+    observeEvent(input$SideBar_col_react,
+                 {
+                     vals$collapsed=!vals$collapsed
+                 }
+    )
+    
+    #To get the download to include datapoints, we need to create a reactive map object with the 
+    # same properties as our output map above
+    
+    map_reactive_download <- reactive({
+        
+        case <- paste0(input$MapRegions, "_", input$MapStatistic)
+
+        map_zoom <- map_reactive() %>%
+            setView(lng = input$map_center$lng,  
+                 lat = input$map_center$lat,
+                 zoom = input$map_zoom) %>%
+            addPolylines(data = city_outline, weight=2, fill=FALSE, color="black", opacity=1)
+        
+        
+        
+        switch(case,
+               census_income = {
+                   map_fill <- map_zoom %>%
+                       addPolygons(data = tracts,
+                                   fillColor = ~ pal_inc(tracts@data$B19013_001E),
+                                   fillOpacity = 0.7, weight = 0.5,
+                                   label = ~NAMELSAD)},
+               census_population = {
+                   map_fill <- map_zoom %>%
+                       addPolygons(data = tracts,
+                                   fillColor = ~ pal_pop(tracts@data$B01003_001E),
+                                   fillOpacity = 0.7, weight = 0.5,
+                                   label = ~NAMELSAD)},
+               community_income = {
+                   map_fill <- map_zoom %>%
+                       addPolygons(data = comm_areas,
+                                   fillColor = ~ pal_inc(comm_areas@data$B19013_001E),
+                                   fillOpacity = 0.7, weight = 1.5,
+                                   color = "black",
+                                   label = ~community)},
+               community_population = {
+                   map_fill <- map_zoom %>%
+                       addPolygons(data = comm_areas,
+                                   fillColor = ~ pal_pop(comm_areas@data$B01003_001E),
+                                   fillOpacity = 0.7, weight = 1.5,
+                                   color = "black",
+                                   label = ~community)})
+        
+        switch(input$MapStatistic,
+               income = {
+                   map_leg <- map_fill %>%
+                       addLegend(colors = legend_colors_inc,  
+                                 values = legend_values_inc, 
+                                 labels = legend_labels_inc,
+                                 position = "bottomright", 
+                                 title = "Income Levels")},
+               population = {
+                   map_leg <- map_fill %>%
+                       addLegend(colors = legend_colors_pop,  
+                                 values = legend_values_pop, 
+                                 labels = legend_labels_pop,
+                                 position = "bottomright", 
+                                 title = "Population Levels")})
+        
+        #return(map_leg)
+        
+        
+        
+        MapRegions <- input$MapRegions # "census" or "community"
+        MapStatistic <- input$MapStatistic # "income" or "population"
+        SourceSeverity <- input$SourceSeverity
+        SourceStatistic <- input$SourceStatistic
+        
+        SourceYear <- input$SourceYear
+        showVehicleMake <- input$showVehicleMake
+        showRadius <- input$showRadius
+        
+        dat <- crash[CrashYear == (as.integer(SourceYear) - 2000) &
+                         CrashInjurySeverity %in% SourceSeverity]
+        
+        switch(
+            SourceStatistic,
+            `belts used` = {
+                dat <- cbind(dat, dat[ , list(latitude=lat, longitude=lon, statistic = belt_group)])
+                dat$icon_file <- icon_data[match(dat$veh_make, icon_data$makes), file]
+                dat$icon_full_file <- icon_data[match(dat$veh_make, icon_data$makes), full_file]
+                icon_legend_data <- icon_data
+            },
+            `highest BAC` = {
+                dat <- cbind(dat, dat[ , list(latitude=lat, longitude=lon, statistic = any_drugs_or_alcohol)])
+                dat$icon_file <- icon_data[match(dat$veh_make, icon_data$makes), file]
+                dat$icon_full_file <- icon_data[match(dat$veh_make, icon_data$makes), full_file]
+                icon_legend_data <- icon_data
+            })
+        
+        icon_legend <- paste0("<img %s", basename(icon_legend_data$file), '>',
+                              icon_legend_data$name, 
+                              sep = "", collapse = "<br/>")
+        icon_legend <- gsub("%s", "src=http://geneorama.com/code/icons/", icon_legend)
+        
+        # leaflet() %>%
+        #     addMarkers(data=data.table(a=1,b=1), lng = ~a, lat = ~b,
+        #                icon = icons(~"data/icons/2.png", iconHeight = 10,iconWidth = 10)) %>%
+        #     addControl(html = icon_legend, layerId = "icon_legend", position = "bottomright")
+        
+        new_markers <<- as.character(1:nrow(dat))
+        if(!exists("old_markers")) old_markers <<- new_markers
+        if(showRadius){
+            map_markers <- map_leg %>%
+                clearMarkers() %>%
+                removeShape(layerId = old_markers) %>%
+                addCircles(data = dat, lng = dat$longitude, lat = dat$latitude, 
+                           layerId = new_markers,
+                           label = ~statistic,
+                           # radius = 152.4, ## 152.4 meters is 500 feet
+                           radius = ~person_record_count*15.24, ## 152.4 meters is 500 feet
+                           stroke = TRUE, color = "black", weight = .8, opacity = 1,
+                           fillColor = "orange", fillOpacity = 0.5)
+        } else {
+            map_markers <- map_leg %>%
+                clearMarkers() %>%
+                removeShape(layerId = old_markers)
+        }
+        old_markers <<- new_markers
+        
+        if(showVehicleMake){
+            map_markers_2 <- map_markers %>%
+                addMarkers(data = dat, lng = ~longitude, lat = ~latitude, label = ~veh_make,
+                           icon = icons(~icon_file,
+                                        iconHeight = ICON_HEIGHT,
+                                        iconWidth = ICON_WIDTH)) %>%
+                addControl(html = icon_legend, 
+                           layerId = "icon_legend",
+                           position = "bottomright")
+        } else {
+            map_markers_2 <- map_markers %>%
+                clearMarkers() %>%
+                removeControl(layerId = "icon_legend")
+        }
+        
+        return(map_markers_2)
+
+    })
+    
+    #This code is just a messy example of an additional collapseable sidebar with a download button
+    # and potential inputs for someone to filter data
+    
+    #When we collapse it it changes what menu is rendered, dropping the UI elements
+    #so they don't get cut off weirdly.
+    
+    output$Semi_collapsible_sidebar<-renderMenu({
+        if (vals$collapsed)
+            sidebarMenu(
+                menuItem(NULL, tabName = "filter_1", icon = icon("dashboard")),
+                menuItem(NULL, icon = icon("th"), tabName = "filter_2",
+                         badgeColor = "green")
+                #downloadButton( outputId = "dl"))
+            )
+        else
+            sidebarMenu(
+                menuItem("Filter date", tabName = "filter_1", icon = icon("dashboard")),
+                menuItem("Filter demographics", icon = icon("th"), tabName = "filter_2",
+                         badgeColor = "green"),
+                br(),
+                downloadButton(outputId = "dl", label = "Download Viz"),
+                class = "download_this")
+    })
+    
+    #Our download handler prompts on the download button ui element and saves a leaflet map
+    #with the view set to that of the one on screen of the app.
+    
+    output$dl <- downloadHandler(
+        filename = paste0(Sys.Date(),
+                          "_customLeafletmap", 
+                          ".png"
+        ), 
+        content = function(file) {
+            
+            mapshot(x = map_reactive_download(), 
+                    file = file,
+                    cliprect = "viewport", 
+                    selfcontained = FALSE)
+            
+        }
+
+    )
 }
 
